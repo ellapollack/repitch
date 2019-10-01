@@ -71,12 +71,14 @@ public:
     //==============================================================================
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    
-    SmoothedValue<float> fade = 0.5, freq = 32768, feedback = 0, gain = 0.8;
-    std::atomic<int> clip {0};
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessor)
     RingBuffer ring;
     Voice voices[128];
+    
+    AudioProcessorValueTreeState parameters;
+    float *pitchParam, *fadeParam, *feedbackParam, *volumeParam;
+    SmoothedValue<float> fadeSmoother, feedbackSmoother, volumeSmoother;
+    SmoothedValue<float, ValueSmoothingTypes::Multiplicative> periodSmoother;
 };

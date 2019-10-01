@@ -13,53 +13,32 @@
 
 //==============================================================================
 
-RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor& p)
-    : AudioProcessorEditor (&p), processor (p)
+RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor& p, AudioProcessorValueTreeState& vts)
+    : AudioProcessorEditor (&p), processor (p), vts(vts)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (3*splashWidth, splashWidth);
     
-    // these define the parameters of our slider object
     freqSlider.setSliderStyle (Slider::RotaryVerticalDrag);
-    freqSlider.setRange(-128, 127, 0);
     freqSlider.setTextBoxStyle (Slider::NoTextBox, false, 90, 0);
-    freqSlider.setValue(30);
-    
-    // this function adds the slider to the editor
     addAndMakeVisible (&freqSlider);
-    
-    freqSlider.addListener (this);
+    pitchAttachment.reset(new SliderAttachment (vts, "pitch", freqSlider));
     
     fadeSlider.setSliderStyle (Slider::RotaryVerticalDrag);
-    fadeSlider.setRange(0, 1, 0);
     fadeSlider.setTextBoxStyle (Slider::NoTextBox, false, 90, 0);
-    fadeSlider.setValue(0.5);
-    
-    // this function adds the slider to the editor
     addAndMakeVisible (&fadeSlider);
-    
-    fadeSlider.addListener (this);
+    fadeAttachment.reset(new SliderAttachment (vts, "fade", fadeSlider));
     
     fdbkSlider.setSliderStyle (Slider::RotaryVerticalDrag);
-    fdbkSlider.setRange(0, 1, 0);
     fdbkSlider.setTextBoxStyle (Slider::NoTextBox, false, 90, 0);
-    fdbkSlider.setValue(0);
-    
-    // this function adds the slider to the editor
     addAndMakeVisible (&fdbkSlider);
-    
-    fdbkSlider.addListener (this);
+    feedbackAttachment.reset(new SliderAttachment (vts, "feedback", fdbkSlider));
     
     gainSlider.setSliderStyle (Slider::RotaryVerticalDrag);
-    gainSlider.setRange(0, 1, 0);
     gainSlider.setTextBoxStyle (Slider::NoTextBox, false, 90, 0);
-    gainSlider.setValue(0.8);
-    
-    // this function adds the slider to the editor
     addAndMakeVisible (&gainSlider);
-    
-    gainSlider.addListener (this);
+    volumeAttachment.reset(new SliderAttachment (vts, "volume", gainSlider));
 }
 
 RepitchAudioProcessorEditor::~RepitchAudioProcessorEditor()
@@ -92,16 +71,4 @@ void RepitchAudioProcessorEditor::resized()
     fdbkSlider.setBounds (5*splashWidth/3, 0, 2*splashWidth/3, splashWidth);
     gainSlider.setBounds (7*splashWidth/3, 0, 2*splashWidth/3, splashWidth);
     
-}
-
-void RepitchAudioProcessorEditor::sliderValueChanged (Slider* slider)
-{
-    if (slider==&freqSlider)
-        processor.freq.setTargetValue(processor.getSampleRate()/440*pow(2,(69-slider->getValue())/12-1));
-    else if (slider==&fadeSlider)
-        processor.fade.setTargetValue(slider->getValue());
-    else if (slider==&fdbkSlider)
-        processor.feedback.setTargetValue(slider->getValue());
-    else if (slider==&gainSlider)
-        processor.gain.setTargetValue(slider->getValue());
 }

@@ -83,13 +83,44 @@ RepitchAudioProcessor::RepitchAudioProcessor() :
                      #endif
                        ),
 #endif
-ring(2, 2097152)
+ring(2, 2097152),
+parameters (*this, nullptr, Identifier ("Repitch"),
+{
+    std::make_unique<AudioParameterFloat> ("pitch",            // parameter ID
+                                           "Pitch",            // parameter name
+                                           -128.f,              // minimum value
+                                           127.f,              // maximum value
+                                           60.f),             // default value
+    
+    std::make_unique<AudioParameterFloat> ("fade",            // parameter ID
+                                           "Fade",            // parameter name
+                                           0.0f,              // minimum value
+                                           1.0f,              // maximum value
+                                           0.5f),             // default value
+    
+    std::make_unique<AudioParameterFloat> ("feedback",            // parameter ID
+                                           "Feedback",            // parameter name
+                                           0.0f,              // minimum value
+                                           1.0f,              // maximum value
+                                           0.0f),             // default value
+    
+    std::make_unique<AudioParameterFloat> ("volume",            // parameter ID
+                                           "Volume",            // parameter name
+                                           0.0f,              // minimum value
+                                           1.0f,              // maximum value
+                                           0.8f)             // default value
+})
 {
     ring.clear();
     for (int note=0; note<128; ++note)
     {
         voices[note].stride = 1-pow(2, (note-60) / 12.);
     }
+    
+    pitchParam = parameters.getRawParameterValue("pitch");
+    fadeParam = parameters.getRawParameterValue("fade");
+    feedbackParam = parameters.getRawParameterValue("feedback");
+    volumeParam = parameters.getRawParameterValue("volume");
 }
 
 RepitchAudioProcessor::~RepitchAudioProcessor()
@@ -163,10 +194,10 @@ void RepitchAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    fade.reset(sampleRate, samplesPerBlock/sampleRate);
-    freq.reset(sampleRate, samplesPerBlock/sampleRate);
-    feedback.reset(sampleRate, samplesPerBlock/sampleRate);
-    gain.reset(sampleRate, samplesPerBlock/sampleRate);
+    periodSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    fadeSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    feedbackSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    volumeSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
     
 }
     
@@ -206,9 +237,19 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     MidiBuffer::Iterator midi (midiMessages);
     MidiMessage m;
     int mSample = 0;
+    
+    periodSmoother.setTargetValue(getSampleRate()/440*pow(2,(69-*pitchParam)/12-1));
+    fadeSmoother.setTargetValue(*fadeParam);
+    feedbackSmoother.setTargetValue(*feedbackParam);
+    volumeSmoother.setTargetValue(*volumeParam);
 
     for (int sample=0; sample<buffer.getNumSamples(); ++sample)
     {
+        float period = periodSmoother.getNextValue(),
+              fade = fadeSmoother.getNextValue(),
+              feedback = feedbackSmoother.getNextValue(),
+              volume = volumeSmoother.getNextValue();
+        
         while (sample==mSample && midi.getNextEvent(m, mSample))
         {
             if (m.isNoteOnOrOff())
@@ -227,25 +268,22 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
         ring.pushFrom(buffer, sample);
         buffer.clear(sample, 1);
         
-        int currFreq = freq.getNextValue();
-        float currGain = gain.getNextValue();
-        
         for (Voice& voice : voices)
         {
             if (voice.gain > 0.001 || voice.gainTarget > 0)
             {
-                voice.gain += pow(5*getSampleRate(),-fade.getNextValue()) * (voice.gainTarget - voice.gain);
+                voice.gain += pow(5*getSampleRate(),-fade) * (voice.gainTarget - voice.gain);
                 
-                clip &= ring.addTo(buffer, sample, voice.delay, currGain/(1-voice.stride)*voice.gain*pow(sin(voice.delay / currFreq * M_PI / 2), 2));
-                clip &= ring.addTo(buffer, sample, voice.delay + currFreq, currGain/(1-voice.stride)*voice.gain*pow(cos(voice.delay / currFreq * M_PI / 2), 2));
+                ring.addTo(buffer, sample, voice.delay, volume/(1-voice.stride)*voice.gain*pow(sin(voice.delay / period * M_PI / 2), 2));
+                ring.addTo(buffer, sample, voice.delay + period, volume/(1-voice.stride)*voice.gain*pow(cos(voice.delay / period * M_PI / 2), 2));
                 
                 voice.delay += voice.stride;
-                voice.delay = fmod(voice.delay, currFreq);
+                voice.delay = fmod(voice.delay, period);
                 if (voice.delay<0)
-                    voice.delay += currFreq;
+                    voice.delay += period;
             }
         }
-        clip &= ring.addFrom(buffer, sample, feedback.getNextValue());
+        ring.addFrom(buffer, sample, feedback);
     }
 }
 
@@ -257,21 +295,24 @@ bool RepitchAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* RepitchAudioProcessor::createEditor()
 {
-    return new RepitchAudioProcessorEditor (*this);
+    return new RepitchAudioProcessorEditor (*this, parameters);
 }
 
 //==============================================================================
 void RepitchAudioProcessor::getStateInformation (MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    auto state = parameters.copyState();
+    std::unique_ptr<XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void RepitchAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+ 
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (parameters.state.getType()))
+            parameters.replaceState (ValueTree::fromXml (*xmlState));
 }
 
 //==============================================================================
