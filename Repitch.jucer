@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="X4Mt7w" name="Repitch" projectType="audioplug" jucerVersion="5.4.4"
-              pluginFormats="buildAAX,buildAU,buildStandalone,buildVST3" pluginManufacturer="Max"
+              pluginFormats="buildAU,buildStandalone,buildVST3" pluginManufacturer="Max"
               pluginManufacturerCode="MaxP" pluginCode="RePi" pluginVST3Category="Pitch Shift"
               companyWebsite="maxis.cool" companyName="Max" pluginDesc="MIDI-controlled polyphonic pitch shifting."
               pluginAUMainType="'aumf'" pluginCharacteristicsValue="pluginWantsMidiIn">

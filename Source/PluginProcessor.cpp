@@ -13,62 +13,33 @@
 
 //==============================================================================
 
-bool RingBuffer::pushFrom(AudioBuffer<float>& buffer, int sample)
+void RingBuffer::pushFrom(AudioBuffer<float>& buffer, int sample, float gain)
 {
     writeSample++;
     writeSample %= getNumSamples();
-    bool clip = false;
     for (int channel=0; channel<buffer.getNumChannels(); ++channel)
     {
-        float value = buffer.getSample(channel, sample);
-        if (value < -1) {value = -1; clip = true;}
-        if (value > 1) {value = 1; clip = true;}
-        setSample(channel, writeSample, value);
+        setSample(channel, writeSample, tanh(gain*buffer.getSample(channel, sample)));
     }
-    return clip;
 }
 
-bool RingBuffer::addFrom(AudioBuffer<float>& buffer, int sample, float gain)
+void RingBuffer::addFrom(AudioBuffer<float>& buffer, int sample, float gain)
 {
-    bool clip = false;
     for (int channel=0; channel<buffer.getNumChannels(); ++channel)
     {
-        addSample(channel, writeSample, gain * buffer.getSample(channel, sample));
-        if (getSample(channel, writeSample) > 1)
-        {
-            setSample(channel, writeSample, 1);
-            clip = true;
-        }
-        if (getSample(channel, writeSample) < -1)
-        {
-            setSample(channel, writeSample, -1);
-            clip = true;
-        }
+        setSample(channel, writeSample, tanh(atanh(getSample(channel, writeSample)) + gain * buffer.getSample(channel, sample)));
     }
-    return clip;
 }
 
-bool RingBuffer::addTo(AudioSampleBuffer &buffer, int sample, int delay, float gain)
+void RingBuffer::addTo(AudioSampleBuffer &buffer, int sample, int delay, float gain)
 {
     int index = (writeSample-delay) % getNumSamples();
-    bool clip = false;
     if (index<0)
         index += getNumSamples();
     for (int channel=0; channel<buffer.getNumChannels(); ++channel)
     {
-        buffer.addSample(channel, sample, gain * getSample(channel, index));
-        if (buffer.getSample(channel, sample) > 1)
-        {
-            buffer.setSample(channel, sample, 1);
-            clip = true;
-        }
-        if (buffer.getSample(channel, sample) < -1)
-        {
-            buffer.setSample(channel, sample, -1);
-            clip = true;
-        }
+        buffer.setSample(channel, sample, tanh(atanh(buffer.getSample(channel, sample)) + gain * getSample(channel, index)));
     }
-    return clip;
 }
 
 //==============================================================================
@@ -233,6 +204,12 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
+    AudioPlayHead* ph = getPlayHead();
+    AudioPlayHead::CurrentPositionInfo cpi;
+    cpi.resetToDefault();
+    if (ph != nullptr)
+        ph->getCurrentPosition(cpi);
+    bpm = cpi.bpm;
     
     MidiBuffer::Iterator midi (midiMessages);
     MidiMessage m;
@@ -265,7 +242,7 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
             }
         }
         
-        ring.pushFrom(buffer, sample);
+        ring.pushFrom(buffer, sample, volume);
         buffer.clear(sample, 1);
         
         for (Voice& voice : voices)
@@ -274,8 +251,8 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
             {
                 voice.gain += pow(5*getSampleRate(),-fade) * (voice.gainTarget - voice.gain);
                 
-                ring.addTo(buffer, sample, voice.delay, volume/(1-voice.stride)*voice.gain*pow(sin(voice.delay / period * M_PI / 2), 2));
-                ring.addTo(buffer, sample, voice.delay + period, volume/(1-voice.stride)*voice.gain*pow(cos(voice.delay / period * M_PI / 2), 2));
+                ring.addTo(buffer, sample, voice.delay, voice.gain/(1-voice.stride)*pow(sin(voice.delay / period * M_PI / 2), 2));
+                ring.addTo(buffer, sample, voice.delay + period, voice.gain/(1-voice.stride)*pow(cos(voice.delay / period * M_PI / 2), 2));
                 
                 voice.delay += voice.stride;
                 voice.delay = fmod(voice.delay, period);
@@ -283,7 +260,7 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
                     voice.delay += period;
             }
         }
-        ring.addFrom(buffer, sample, feedback);
+        ring.addFrom(buffer, sample, -feedback);
     }
 }
 

@@ -19,9 +19,9 @@
 struct RingBuffer : AudioSampleBuffer
 {
     using AudioSampleBuffer::AudioSampleBuffer;
-    bool pushFrom(AudioSampleBuffer& buffer, int sample);
-    bool addFrom(AudioSampleBuffer& buffer, int sample, float gain);
-    bool addTo(AudioSampleBuffer& buffer, int sample, int delay, float gain);
+    void pushFrom(AudioSampleBuffer& buffer, int sample, float gain);
+    void addFrom(AudioSampleBuffer& buffer, int sample, float gain);
+    void addTo(AudioSampleBuffer& buffer, int sample, int delay, float gain);
     
 private:
     int writeSample = -1;
@@ -71,6 +71,7 @@ public:
     //==============================================================================
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    std::atomic<double> bpm;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessor)
