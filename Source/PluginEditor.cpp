@@ -74,14 +74,11 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
     pitchSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox, p.bpm),
     hzButton("Hz", "M 1 4 L 1 16 M 9 4 L 9 16 M 2 10 L 9 10 M 18 10 L 12 16 M 12 10 L 18 10 M 12 16 L 18 16", Colours::cyan, Colours::grey),
     noteButton("Musical Note", "M 13 16 A 3 3 0 1 0 7 16 A 3 3 0 1 0 13 16 L 13 4 A 5 5 0 0 0 18 9", Colours::red, Colours::grey),
-    tempoButton("Metronome", "M 5 19 L 9 4 L 11 4 L 15 19 L 5 19 M 6.33333 14 L 13.66666 14 M 10 14 L 15 6", Colours::lime, Colours::grey),
-    fadeSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox),
-    feedbackSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox),
-    volumeSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox)
+    tempoButton("Metronome", "M 5 19 L 9 4 L 11 4 L 15 19 L 5 19 M 6.33333 14 L 13.66666 14 M 10 14 L 15 6", Colours::lime, Colours::grey)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (3*scale, scale);
+    setSize (scale, scale);
     
     addAndMakeVisible (&pitchSlider);
     pitchAttachment.reset(new SliderAttachment (vts, "pitch", pitchSlider));
@@ -110,18 +107,6 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
         pitchSlider.setMode(TunableSlider::Tempo);
     };
     
-    addAndMakeVisible (&fadeSlider);
-    fadeSlider.setColour(Slider::thumbColourId, Colours::lightgrey);
-    fadeAttachment.reset(new SliderAttachment (vts, "fade", fadeSlider));
-    
-    addAndMakeVisible (&feedbackSlider);
-    feedbackSlider.setColour(Slider::thumbColourId, Colours::lightgrey);
-    feedbackAttachment.reset(new SliderAttachment (vts, "feedback", feedbackSlider));
-    
-    addAndMakeVisible (&volumeSlider);
-    volumeSlider.setColour(Slider::thumbColourId, Colours::lightgrey);
-    volumeAttachment.reset(new SliderAttachment (vts, "volume", volumeSlider));
-    
     hzButton.triggerClick();
 }
 
@@ -140,9 +125,6 @@ void RepitchAudioProcessorEditor::paint (Graphics& g)
     g.setFont(15);
     
     g.drawText("Freq", 0, 0, scale, scale*0.93, Justification::centredBottom);
-    g.drawText("Fade", scale, 0, 2*scale/3, scale*0.93, Justification::centredBottom);
-    g.drawText("Feedback", 5*scale/3, 0, 2*scale/3, scale*0.93, Justification::centredBottom);
-    g.drawText("Volume", 7*scale/3, 0, 2*scale/3, scale*0.93, Justification::centredBottom);
 }
 
 void RepitchAudioProcessorEditor::resized()
@@ -154,7 +136,4 @@ void RepitchAudioProcessorEditor::resized()
     hzButton.setBounds(34,72,20,30);
     noteButton.setBounds(54,72, 20, 30);
     tempoButton.setBounds(74,72,20,30);
-    fadeSlider.setBounds (scale, 0, 2*scale/3, scale);
-    feedbackSlider.setBounds (5*scale/3, 0, 2*scale/3, scale);
-    volumeSlider.setBounds (7*scale/3, 0, 2*scale/3, scale);
 }

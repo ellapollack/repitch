@@ -19,9 +19,9 @@
 struct RingBuffer : AudioSampleBuffer
 {
     using AudioSampleBuffer::AudioSampleBuffer;
-    void pushFrom(AudioSampleBuffer& buffer, int sample, float gain);
-    void addFrom(AudioSampleBuffer& buffer, int sample, float gain);
-    void addTo(AudioSampleBuffer& buffer, int sample, int delay, float gain);
+    int wrap(int);
+    void pushFrom(AudioSampleBuffer&, int, float);
+    void addTo(AudioSampleBuffer&, int, float, float);
     
 private:
     int writeSample = -1;
@@ -32,7 +32,7 @@ struct Voice
     float gain = 0, gainTarget = 0, delay = 0, stride;
 };
 
-class RepitchAudioProcessor  : public AudioProcessor
+class RepitchAudioProcessor : public AudioProcessor
 {
 public:
     //==============================================================================
@@ -79,7 +79,6 @@ private:
     Voice voices[128];
     
     AudioProcessorValueTreeState parameters;
-    float *pitchParam, *fadeParam, *feedbackParam, *volumeParam;
-    SmoothedValue<float> fadeSmoother, feedbackSmoother, volumeSmoother;
+    float *pitchParam;
     SmoothedValue<float, ValueSmoothingTypes::Multiplicative> periodSmoother;
 };

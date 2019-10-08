@@ -61,8 +61,7 @@ private:
     AudioProcessorValueTreeState& vts;
     TunableSlider pitchSlider;
     LineButton hzButton, noteButton, tempoButton;
-    Slider fadeSlider, feedbackSlider, volumeSlider;
-    std::unique_ptr<SliderAttachment> pitchAttachment, fadeAttachment, feedbackAttachment, volumeAttachment;
+    std::unique_ptr<SliderAttachment> pitchAttachment;
     int scale = 128;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessorEditor)
