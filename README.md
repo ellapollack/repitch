@@ -11,7 +11,7 @@
 - Download Repitch as an audio plugin in [Audio Unit](https://github.com/maxwellpollack/repitch/releases/latest/download/repitch.component.zip) (Mac) or [VST](https://github.com/maxwellpollack/repitch/releases/latest/download/repitch.vst3.zip) (Windows) format,
 - Install it in your DAW,
 - Place it on a MIDI instrument track, and
-- Assign it a an audio input (called a "sidechain" in some DAWs).
+- Assign it an audio input (called a "sidechain" in some DAWs).
 
 Then, play some MIDI notes. *The audio input will be polyphonically pitch-shifted by their distances from **middle C**.*
 
