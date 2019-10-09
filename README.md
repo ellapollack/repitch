@@ -4,7 +4,7 @@
 
 ### To use,
 
-- Download Repitch as a [standalone application](https://github.com/maxwellpollack/repitch/releases/latest/download/Repitch.app.zip) (Mac only),
+- Download Repitch as a [standalone application](https://github.com/maxwellpollack/repitch/releases/latest/download/Repitch.app.zip) (Mac only) and run it,
 
 ### or
 
