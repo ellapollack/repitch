@@ -13,7 +13,7 @@
 > - Place it on a MIDI instrument track
 > - Assign it a an audio input (called a "sidechain" in some DAWs)
 
-**Then, play some MIDI notes.** *The audio input will be polyphonically pitch-shifted by their distances from **middle C**.*
+Then, play some MIDI notes. *The audio input will be polyphonically pitch-shifted by their distances from **middle C**.*
 
 The only parameter is the **"frequency"** (sample rate / size) of the [variable delay line](http://msp.ucsd.edu/techniques/latest/book-html/node115.html) used in the pitch-shifting algorithm, which is tunable to both pitch and tempo values.
 
