@@ -1,30 +1,18 @@
-/*
-  ==============================================================================
-
-    This file was auto-generated!
-
-    It contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "PluginProcessor.h"
 
-//==============================================================================
-/**
-*/
-
 typedef AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
+
+//==============================================================================
 
 class TunableSlider : public Slider
 {
 public:
     TunableSlider(SliderStyle ss, TextEntryBoxPosition tebp, std::atomic<double>& bpm) : Slider(ss, tebp), bpm(bpm) {};
     enum Mode {Hz, Pitch, Tempo};
-    void setMode(Mode m) {mode = m; setValue(snapValue(getValue(), DragMode::notDragging)); repaint();};
+    void setMode(Mode m) {mode = m; setValue(snapValue(getValue(), DragMode::notDragging));};
     
 private:
     Mode mode = Hz;
@@ -33,7 +21,7 @@ private:
     String getTextFromValue(double) override;
     void paint(Graphics&) override;
     
-    static double roundToNearestOctave(double input, double freq);
+    static double roundToMultiple(double input, double freq, double multiple);
 };
 
 struct LineButton : Button
@@ -50,13 +38,10 @@ public:
     RepitchAudioProcessorEditor (RepitchAudioProcessor&, AudioProcessorValueTreeState&);
     ~RepitchAudioProcessorEditor();
 
-    //==============================================================================
     void paint (Graphics&) override;
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
     RepitchAudioProcessor& processor;
     AudioProcessorValueTreeState& vts;
     TunableSlider pitchSlider;

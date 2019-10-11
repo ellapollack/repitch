@@ -1,21 +1,11 @@
-/*
-  ==============================================================================
-
-    This file was auto-generated!
-
-    It contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
 //==============================================================================
 
-double TunableSlider::roundToNearestOctave(double value, double freq)
+double TunableSlider::roundToMultiple(double value, double freq, double multiple)
 {
-    return 69 + 12 * (round((value-69) / 12 - log2(freq/440)) + log2(freq/440));
+    return 69 + 6 * multiple * (round((value-69) / (6 * multiple) - log(freq/440)/log(multiple)) + log(freq/440)/log(multiple));
 }
 
 double TunableSlider::snapValue(double input, DragMode dm)
@@ -27,7 +17,11 @@ double TunableSlider::snapValue(double input, DragMode dm)
         case Pitch:
             return round(input);
         case Tempo:
-            return roundToNearestOctave(input, bpm/60);
+            double bps = bpm / 60;
+            if (bps>0)
+                return getRange().clipValue(roundToMultiple(input, bps, 2));
+            else
+                return input;
     }
 }
 
@@ -43,11 +37,18 @@ String TunableSlider::getTextFromValue(double value)
             return noteNames[int(value+1200)%12] + String(floor(value/12)-1);
         }
         case Tempo:
-            double tempoValue = pow(2,(value-69) / 12 - log2(bpm/60/440));
-            if (tempoValue>1)
-                return "1/" + String(round(tempoValue));
-            else
-                return String(round(1/tempoValue));
+        {
+            double bps = bpm / 60;
+            if (bps>0)
+            {
+                double tempoValue = pow(2,(value-69) / 12 - log2(bps/440));
+                if (tempoValue>1)
+                    return "1/" + String(round(tempoValue));
+                else
+                    return String(round(1/tempoValue));
+            }
+            else return "N/A";
+        }
     }
 }
 
@@ -58,6 +59,8 @@ void TunableSlider::paint(Graphics& g)
     g.setFont(25.f);
     g.drawText(getTextFromValue(getValue()), 28, 36, 72, 36, Justification::centred, false);
 }
+
+//==============================================================================
 
 void LineButton::paintButton(Graphics& g, bool highlighted, bool down)
 {
@@ -76,8 +79,6 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
     noteButton("Musical Note", "M 13 16 A 3 3 0 1 0 7 16 A 3 3 0 1 0 13 16 L 13 4 A 5 5 0 0 0 18 9", Colours::red, Colours::grey),
     tempoButton("Metronome", "M 5 19 L 9 4 L 11 4 L 15 19 L 5 19 M 6.33333 14 L 13.66666 14 M 10 14 L 15 6", Colours::lime, Colours::grey)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
     setSize (scale, scale);
     
     addAndMakeVisible (&pitchSlider);
@@ -114,24 +115,19 @@ RepitchAudioProcessorEditor::~RepitchAudioProcessorEditor()
 {
 }
 
-//==============================================================================
 void RepitchAudioProcessorEditor::paint (Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(Colours::black);
 
     g.setColour(Colours::grey);
 
     g.setFont(15);
     
-    g.drawText("Freq", 0, 0, scale, scale*0.93, Justification::centredBottom);
+    g.drawText("Pitch", 0, 0, scale, scale*0.91, Justification::centredBottom);
 }
 
 void RepitchAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
-    
     pitchSlider.setBounds (0, 0, scale, scale);
     hzButton.setBounds(34,72,20,30);
     noteButton.setBounds(54,72, 20, 30);
