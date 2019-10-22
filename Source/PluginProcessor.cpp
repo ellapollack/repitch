@@ -3,44 +3,22 @@
 
 //==============================================================================
 
-void RingBuffer::pushSample(int channel, float sample)
-{
-    writeIndex++;
-    writeIndex %= getNumSamples();
-    setSample(channel, writeIndex, sample);
-}
-
-float RingBuffer::getDelayedSample(int channel, float delay)
-{
-    int index = fmod(writeIndex - delay, getNumSamples());
-    if (index<0)
-        index += getNumSamples();
-    
-    // Cubic interpolation
-    
-    float mu = index-trunc(index);
-    float y0 = getSample(channel, int(index-1+getNumSamples()) % getNumSamples());
-    float y1 = getSample(channel, index);
-    float y2 = getSample(channel, int(index+1) % getNumSamples());
-    float y3 = getSample(channel, int(index+2) % getNumSamples());
-    
-    return pow(mu,3) * (y3 - y2 - y0 + y1) -
-           pow(mu,2) * (y2+y3) +
-           mu * (y2-y0) +
-           y1;
-}
-
-//==============================================================================
 RepitchAudioProcessor::RepitchAudioProcessor() :
-AudioProcessor (BusesProperties().withInput  ("Input",  AudioChannelSet::mono(), true).withOutput  ("Output",  AudioChannelSet::stereo(), true)),
-parameters (*this, nullptr, Identifier ("Repitch"), {std::make_unique<AudioParameterFloat> ("pitch", "Pitch", -128.f, 127.f, 60.f)})
+AudioProcessor (BusesProperties()
+                .withInput("Input", AudioChannelSet::mono(), true)
+                .withOutput("Output", AudioChannelSet::stereo(), true)),
+parameters (*this, nullptr, Identifier ("Repitch"), { std::make_unique<AudioParameterFloat> ("pitch", "Pitch", 0.f, 127.f, 48.f),
+    std::make_unique<AudioParameterFloat> ("attack", "Attack", -2.f, 1.f, 0.f),
+    std::make_unique<AudioParameterFloat> ("decay", "Decay", -2.f, 1.f, 0.f),
+    std::make_unique<AudioParameterFloat> ("sustain", "Sustain", 0.f, 1.f, 1.f),
+    std::make_unique<AudioParameterFloat> ("release", "Release", -2.f, 1.f, 0.f)
+})
 {
-    for (int note=0; note<128; ++note)
-    {
-        voices[note].stride = 1-pow(2, (note-60) / 12.);
-    }
-    
     pitchParam = parameters.getRawParameterValue("pitch");
+    aParam = parameters.getRawParameterValue("attack");
+    dParam = parameters.getRawParameterValue("decay");
+    sParam = parameters.getRawParameterValue("sustain");
+    rParam = parameters.getRawParameterValue("release");
 }
 
 RepitchAudioProcessor::~RepitchAudioProcessor()
@@ -109,8 +87,15 @@ void RepitchAudioProcessor::changeProgramName (int index, const String& newName)
 
 void RepitchAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    periodSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
-    ring.reset(new RingBuffer(getTotalNumInputChannels(), 64*getSampleRate()));
+    pitchSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    aSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    dSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    sSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    rSmoother.reset(sampleRate, samplesPerBlock/sampleRate);
+    
+    ring.reset(new RingBuffer(getTotalNumInputChannels(), 64*sampleRate));
+    for (Voice voice : voices)
+        voice.envelope.setSampleRate(sampleRate);
 }
     
 void RepitchAudioProcessor::releaseResources()
@@ -129,24 +114,27 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     int totalNumOutputChannels = getTotalNumOutputChannels();
 
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-    
-    AudioPlayHead* ph = getPlayHead();
-    AudioPlayHead::CurrentPositionInfo cpi;
-    cpi.resetToDefault();
-    if (ph != nullptr)
-        ph->getCurrentPosition(cpi);
-    bpm = cpi.bpm;
+        buffer.clear(i, 0, buffer.getNumSamples());
     
     MidiBuffer::Iterator midi (midiMessages);
     MidiMessage m;
     int mSample = 0;
     
-    periodSmoother.setTargetValue(getSampleRate()/440*pow(2,(69-*pitchParam)/12-1));
+    pitchSmoother.setTargetValue(*pitchParam);
+    aSmoother.setTargetValue(*aParam);
+    dSmoother.setTargetValue(*dParam);
+    sSmoother.setTargetValue(*sParam);
+    rSmoother.setTargetValue(*rParam);
 
     for (int sample=0; sample<buffer.getNumSamples(); ++sample)
     {
-        float period = periodSmoother.getNextValue();
+        adsrParameters.attack = pow(10,aSmoother.getNextValue());
+        adsrParameters.decay = pow(10,dSmoother.getNextValue());
+        adsrParameters.sustain = sSmoother.getNextValue();
+        adsrParameters.release = pow(10,rSmoother.getNextValue());
+        
+        float pitch = pitchSmoother.getNextValue();
+        float period = getSampleRate() / 440 * pow(2, (69 - pitch) / 12);
         
         while (sample==mSample && midi.getNextEvent(m, mSample))
         {
@@ -155,58 +143,52 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
                 int note = m.getNoteNumber();
                 if (m.isNoteOn())
                 {
-                    voices[note].delay = 0;
-                    voices[note].gainTarget = m.getFloatVelocity();
+                    if (!voices[note].envelope.isActive())
+                        voices[note].delay = 0;
+                        voices[note].gain = m.getFloatVelocity();
+                    
+                    voices[note].envelope.noteOn();
                 }
                 else
-                    voices[note].gainTarget = 0;
+                    voices[note].envelope.noteOff();
             }
         }
-        
+
         for (int channel=0; channel<totalNumInputChannels; ++channel)
         {
             ring->pushSample(channel, buffer.getSample(channel, sample));
             buffer.clear(channel, sample, 1);
         }
             
-        for (Voice& voice : voices)
+        for (int note=0; note<128; ++note)
         {
-            if (voice.gain > 0.001 || voice.gainTarget > 0)
+            Voice& voice = voices[note];
+            
+            if (voice.envelope.isActive())
             {
-                voice.gain += 512/getSampleRate() * (voice.gainTarget - voice.gain);
+                voice.stride = 1 - pow(2, (note-pitch) / 12.);
+                voice.envelope.setParameters(adsrParameters);
+                float envelope = voice.envelope.getNextSample();
                 
-                if (totalNumInputChannels==1)
+                for (int channel=0; channel<(totalNumInputChannels==1 ? totalNumOutputChannels : totalNumInputChannels); ++channel)
                 {
-                    for (int channel=0; channel<buffer.getNumChannels(); ++channel)
-                    {
-                        buffer.addSample(channel, sample, voice.gain / (1-voice.stride) *
-                                         (cos(M_PI * voice.delay / period) / -2 + 0.5) *
-                                         ring->getDelayedSample(0, voice.delay));
-                        buffer.addSample(channel, sample, voice.gain / (1-voice.stride) *
-                                         (cos(M_PI * voice.delay / period) / 2 + 0.5) *
-                                         ring->getDelayedSample(0, voice.delay +
-                                                                period));
-                    }
+                    int sourceChannel = totalNumInputChannels==1 ? 0 : channel;
+                    
+                    buffer.addSample(channel, sample, voice.gain * envelope *
+                                     ((cos(M_PI * voice.delay / period) / -2 + 0.5) *
+                                     ring->getSampleAtDelay(sourceChannel,
+                                                            voice.delay) +
+                                     (cos(M_PI * voice.delay / period) / 2 + 0.5) *
+                                    ring->getSampleAtDelay(sourceChannel,
+                                                           voice.delay + period)));
                 }
-                else
-                {
-                    for (int channel=0; channel<totalNumInputChannels; ++channel)
-                    {
-                        buffer.addSample(channel, sample, voice.gain / (1-voice.stride) *
-                                         (cos(M_PI * voice.delay / period) / -2 + 0.5) *
-                                         ring->getDelayedSample(channel, voice.delay));
-                        buffer.addSample(channel, sample, voice.gain / (1-voice.stride) *
-                                         (cos(M_PI * voice.delay / period) / 2 + 0.5) *
-                                         ring->getDelayedSample(channel, voice.delay +
-                                                                period));
-                    }
-                }
-                
+
                 voice.delay = fmod(voice.delay + voice.stride, period);
                 if (voice.delay<0)
                     voice.delay += period;
             }
         }
+        ring->inc();
     }
 }
 

@@ -4,19 +4,40 @@
 
 //==============================================================================
 
+struct Voice
+{
+    ADSR envelope;
+    float gain = 0, delay = 0, stride;
+};
+
 struct RingBuffer : AudioSampleBuffer
 {
     using AudioSampleBuffer::AudioSampleBuffer;
-    void pushSample(int,float);
-    float getDelayedSample(int,float);
+    
+    void pushSample(int channel, float sample)
+    {
+        setSample(channel, writeIndex, sample);
+    }
+
+    float getSampleAtDelay(int channel, float delay)
+    {
+        int numSamples = getNumSamples();
+        float index = fmod(writeIndex - delay + ceil(delay/numSamples)*numSamples, numSamples);
+        
+        // linear interpolation
+        
+        return (1+trunc(index)-index) * getSample(channel, int(index)) +
+        (index-trunc(index)) * getSample(channel, int(index+1)%getNumSamples());
+    }
+    
+    void inc()
+    {
+        writeIndex++;
+        writeIndex %= getNumSamples();
+    }
 
 private:
-    int writeIndex = -1;
-};
-
-struct Voice
-{
-    float gain = 0, gainTarget = 0, delay = 0, stride;
+    int writeIndex = 0;
 };
 
 class RepitchAudioProcessor : public AudioProcessor
@@ -43,7 +64,6 @@ public:
     void changeProgramName (int index, const String& newName) override;
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    std::atomic<double> bpm;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessor)
@@ -51,6 +71,7 @@ private:
     Voice voices[128];
     
     AudioProcessorValueTreeState parameters;
-    float *pitchParam;
-    SmoothedValue<float, ValueSmoothingTypes::Multiplicative> periodSmoother;
+    float *pitchParam, *aParam, *dParam, *sParam, *rParam;
+    ADSR::Parameters adsrParameters;
+    SmoothedValue<float> pitchSmoother, aSmoother, dSmoother, sSmoother, rSmoother;
 };
