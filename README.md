@@ -4,4 +4,22 @@
 
 If you like this software, please [send me some money](https://paypal.me/maxwellpollack) to **support indie audio app development**.
 
-*Made with lots of ❤️ at [the Recurse Center](https://www.recurse.com)*
+................
+
+........
+
+....
+
+..
+
+.
+
+..
+
+....
+
+........
+
+................
+
+*Made with ❤️ at [the Recurse Center](https://www.recurse.com)*
