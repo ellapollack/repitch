@@ -29,8 +29,6 @@ public:
 private:
     void paint(Graphics&) override;
     void resized() override;
-    
-    //static double roundToFreqMultiple(double input, double freq, double multiple);
 };
 
 class RepitchAudioProcessorEditor  : public AudioProcessorEditor
@@ -50,8 +48,6 @@ private:
     Slider aSlider, dSlider, sSlider, rSlider;
     SliderAttachment pitchAttachment, aAttachment, dAttachment, sAttachment, rAttachment;
     ButtonAttachment snapAttachment;
-    
-    int scale = 128;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessorEditor)
 };

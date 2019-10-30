@@ -3,6 +3,13 @@
 
 //==============================================================================
 
+// For when microtonal scale support is implemented...
+
+//double roundToFreqMultiple(double value, double freq, double multiple)
+//{
+//    return 69 + 6 * multiple * (round((value-69) / (6 * multiple) - log(freq/440)/log(multiple)) + log(freq/440)/log(multiple));
+//}
+
 RepitchAudioProcessor::RepitchAudioProcessor() :
 AudioProcessor (BusesProperties()
                 .withInput("Input", AudioChannelSet::mono(), true)
@@ -10,19 +17,15 @@ AudioProcessor (BusesProperties()
 parameters (*this, nullptr, Identifier ("Repitch"), {
     std::make_unique<AudioParameterFloat> ("pitch",
                                            "Pitch",
-                                           NormalisableRange<float> (0.f, 127.f, [](auto rangeStart, auto rangeEnd, auto valueToRemap) { return jmap(valueToRemap, rangeStart, rangeEnd); },
-                                               [](auto rangeStart, auto rangeEnd, auto valueToRemap) { return jmap(valueToRemap, rangeStart, rangeEnd, 0.0f, 1.0f); },
-                                               [this](auto rangeStart, auto rangeEnd, auto valueToRemap) { if (snapParam != nullptr && *snapParam) return round(valueToRemap); else return valueToRemap; }
+                                           NormalisableRange<float> (0., 127., nullptr,
+                                               nullptr,
+                                               [this](auto start, auto end, auto value) { if (snapParam != nullptr && *snapParam) return round(value); else return value; }
                                            ),
-                                           60.f,
-                                           String(),
-                                           AudioProcessorParameter::genericParameter,
-                                           [this](auto value, int){if(snapParam != nullptr && *snapParam) return NOTE_NAMES[int(value+1200)%12] + String(floor(value/12)-1); else return String(440 * pow(2, (value - 69) / 12))+" Hz";},
-                                           nullptr),
-    std::make_unique<AudioParameterFloat> ("attack", "Attack", NormalisableRange<float> (-2, 1), -2., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
-    std::make_unique<AudioParameterFloat> ("decay", "Decay", NormalisableRange<float> (-2, 1), 1., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
-    std::make_unique<AudioParameterFloat> ("sustain", "Sustain", NormalisableRange<float> (0, 1), 1., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
-    std::make_unique<AudioParameterFloat> ("release", "Release", NormalisableRange<float> (-2, 1), -2., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
+                                           60.),
+    std::make_unique<AudioParameterFloat> ("attack", "Attack", NormalisableRange<float> (0.01, 10., pow10VRF, log10VRF), 0.01),
+    std::make_unique<AudioParameterFloat> ("decay", "Decay", NormalisableRange<float> (0.01, 10., pow10VRF, log10VRF), 10.),
+    std::make_unique<AudioParameterFloat> ("sustain", "Sustain", NormalisableRange<float> (0, 1), 1.),
+    std::make_unique<AudioParameterFloat> ("release", "Release", NormalisableRange<float> (0.01, 10., pow10VRF, log10VRF), 0.01),
     std::make_unique<AudioParameterBool>("snap", "Snap", true)
 })
 
@@ -142,12 +145,12 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     for (int sample=0; sample<buffer.getNumSamples(); ++sample)
     {
-        adsrParameters.attack = pow(10,aSmoother.getNextValue());
-        adsrParameters.decay = pow(10,dSmoother.getNextValue());
+        adsrParameters.attack = aSmoother.getNextValue();
+        adsrParameters.decay = dSmoother.getNextValue();
         adsrParameters.sustain = sSmoother.getNextValue();
-        adsrParameters.release = pow(10,rSmoother.getNextValue());
-        
+        adsrParameters.release = rSmoother.getNextValue();
         float pitch = pitchSmoother.getNextValue();
+        
         float period = getSampleRate() / 440 * pow(2, (69 - pitch) / 12);
         
         while (sample==mSample && midi.getNextEvent(m, mSample))

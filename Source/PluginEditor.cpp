@@ -3,13 +3,6 @@
 
 //==============================================================================
 
-// For when Microtonal scale support is implemented...
-
-//double TunableSlider::roundToFreqMultiple(double value, double freq, double multiple)
-//{
-//    return 69 + 6 * multiple * (round((value-69) / (6 * multiple) - log(freq/440)/log(multiple)) + log(freq/440)/log(multiple));
-//}
-
 void TunableSlider::paint(Graphics& g)
 {
     Colour modeColour = tuneToggle.getToggleState() ? Colours::red : Colours::cyan;
@@ -20,9 +13,11 @@ void TunableSlider::paint(Graphics& g)
     
     double value = getValue();
     
+    const String NOTE_NAMES[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+    
     if (tuneToggle.getToggleState())
     {
-        g.setFont(0.3*getWidth());
+        g.setFont(value < 12 ? 0.25*getWidth() : 0.3*getWidth());
         g.drawText(NOTE_NAMES[int(value+1200)%12] + String(floor(value/12)-1), 0.2*getWidth(), 0, 0.6*getWidth(), getHeight(), Justification::centred, false);
     }
     else
@@ -44,7 +39,9 @@ void TunableSlider::resized()
 void TunableSlider::TuneToggle::mouseDown(const MouseEvent& a)
 {
     setToggleState(a.getMouseDownX()>getWidth()/2, sendNotificationSync);
-    getParentComponent()->repaint();
+    TunableSlider* s = dynamic_cast<TunableSlider*>(getParentComponent());
+    s->setValue(s->getValue());
+    s->repaint();
 }
 
 void TunableSlider::TuneToggle::paintButton(Graphics& g, bool highlighted, bool down)
@@ -72,7 +69,7 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
     AudioProcessorEditor (&p),
     processor (p),
     vts(vts),
-    pitchSlider(Slider::Rotary, Slider::NoTextBox),
+    pitchSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox),
     aSlider(Slider::LinearVertical, Slider::NoTextBox),
     dSlider(Slider::LinearVertical, Slider::NoTextBox),
     sSlider(Slider::LinearVertical, Slider::NoTextBox),
@@ -84,10 +81,10 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
     rAttachment(vts, "release", rSlider),
     snapAttachment(vts, "snap", pitchSlider.tuneToggle)
 {
-    setSize (scale, 5*scale/3);
+    setSize (128, 213);
     
     addAndMakeVisible (pitchSlider);
-    pitchSlider.setMouseDragSensitivity(1024);
+    pitchSlider.setMouseDragSensitivity(512);
     
     addAndMakeVisible(aSlider);
     aSlider.setColour(Slider::thumbColourId, Colours::grey);
@@ -127,7 +124,7 @@ void RepitchAudioProcessorEditor::paint (Graphics& g)
 
 void RepitchAudioProcessorEditor::resized()
 {
-    pitchSlider.setBounds (0, 0, scale, scale);
+    pitchSlider.setBounds (0, 0, getWidth(), getWidth());
     aSlider.setBounds(0, getWidth()*0.97, getWidth()/4, getWidth()/2);
     dSlider.setBounds(getWidth()/4, getWidth()*0.97, getWidth()/4, getWidth()/2);
     sSlider.setBounds(getWidth()/2, getWidth()*0.97, getWidth()/4, getWidth()/2);

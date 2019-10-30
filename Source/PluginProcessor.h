@@ -2,8 +2,6 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-const String NOTE_NAMES[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-
 //==============================================================================
 
 struct Voice
@@ -72,8 +70,15 @@ private:
     std::unique_ptr<RingBuffer> ring;
     Voice voices[128];
     
+    static float pow10VRF(float start, float end, float value)
+    { return pow(10.,jmap(value, log10(start), log10(end))); }
+    
+    static float log10VRF(float start, float end, float value)
+    { return jmap(log10(value), log10(start), log10(end), 0.0f, 1.0f); }
+    
     float *pitchParam, *aParam, *dParam, *sParam, *rParam, *snapParam=nullptr;
     AudioProcessorValueTreeState parameters;
     ADSR::Parameters adsrParameters;
-    SmoothedValue<float> pitchSmoother, aSmoother, dSmoother, sSmoother, rSmoother;
+    SmoothedValue<float, ValueSmoothingTypes::Linear> pitchSmoother, sSmoother;
+    SmoothedValue<float, ValueSmoothingTypes::Multiplicative> aSmoother, dSmoother, rSmoother;
 };
