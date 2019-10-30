@@ -3,42 +3,67 @@
 
 //==============================================================================
 
-double TunableSlider::roundToMultiple(double value, double freq, double multiple)
-{
-    return 69 + 6 * multiple * (round((value-69) / (6 * multiple) - log(freq/440)/log(multiple)) + log(freq/440)/log(multiple));
-}
+// For when Microtonal scale support is implemented...
 
-double TunableSlider::snapValue(double input, DragMode dm)
-{
-    if (snap) return round(input);
-    else return input;
-}
+//double TunableSlider::roundToFreqMultiple(double value, double freq, double multiple)
+//{
+//    return 69 + 6 * multiple * (round((value-69) / (6 * multiple) - log(freq/440)/log(multiple)) + log(freq/440)/log(multiple));
+//}
 
 void TunableSlider::paint(Graphics& g)
 {
+    Colour modeColour = tuneToggle.getToggleState() ? Colours::red : Colours::cyan;
+    setColour(Slider::thumbColourId, modeColour);
     Slider::paint(g);
-    g.setColour(findColour(Slider::thumbColourId).brighter());
-    g.setFont(30.f);
+    
+    g.setColour(modeColour);
     
     double value = getValue();
     
-    if (snap)
+    if (tuneToggle.getToggleState())
     {
-        const String noteNames[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-        g.drawText(noteNames[int(value+1200)%12] + String(floor(value/12)-1), 16, 0, 96, getHeight(), Justification::centred, false);
+        g.setFont(0.3*getWidth());
+        g.drawText(NOTE_NAMES[int(value+1200)%12] + String(floor(value/12)-1), 0.2*getWidth(), 0, 0.6*getWidth(), getHeight(), Justification::centred, false);
     }
     else
     {
-        g.drawText(String(440 * pow(2, (value - 69) / 12)), 16, 0, 96, getHeight(), Justification::centred, false);
+        double hzValue = 440 * pow(2, (value - 69) / 12);
+        g.setFont(0.9*getWidth()/jmax(3.,ceil(log10(hzValue))-0.5));
+        if (hzValue>100)
+            hzValue = trunc(hzValue);
+        g.drawText(String(hzValue), 0.2*getWidth(), 0, 0.6*getWidth(), getHeight(), Justification::centred, false);
     }
 }
 
-//==============================================================================
-
-void LineButton::paintButton(Graphics& g, bool highlighted, bool down)
+void TunableSlider::resized()
 {
-    g.setColour(getToggleState() || down ? onColour : offColour);
-    g.strokePath(icon, PathStrokeType(1, PathStrokeType::JointStyle::curved, PathStrokeType::EndCapStyle::rounded));
+    Slider::resized();
+    tuneToggle.setBounds(getWidth()/4, getHeight()*0.75, getWidth()/2, 30);
+}
+
+void TunableSlider::TuneToggle::mouseDown(const MouseEvent& a)
+{
+    setToggleState(a.getMouseDownX()>getWidth()/2, sendNotificationSync);
+    getParentComponent()->repaint();
+}
+
+void TunableSlider::TuneToggle::paintButton(Graphics& g, bool highlighted, bool down)
+{
+    bool toggleState = getToggleState();
+    
+    PathStrokeType pst (1,
+                        PathStrokeType::JointStyle::curved,
+                        PathStrokeType::EndCapStyle::rounded);
+    
+    Path hzIcon = Drawable::parseSVGPath("M 1 4 L 1 16 M 9 4 L 9 16 M 2 10 L 9 10 M 18 10 L 12 16 M 12 10 L 18 10 M 12 16 L 18 16");
+    hzIcon.applyTransform(AffineTransform::translation(getWidth()/2-20, 0));
+    g.setColour(toggleState ? Colours::darkgrey : Colours::cyan);
+    g.strokePath(hzIcon, pst);
+    
+    Path noteIcon = Drawable::parseSVGPath("M 13 16 A 3 3 0 1 0 7 16 A 3 3 0 1 0 13 16 L 13 4 A 5 5 0 0 0 18 9");
+    noteIcon.applyTransform(AffineTransform::translation(getWidth()/2, 0));
+    g.setColour(toggleState ? Colours::red : Colours::darkgrey);
+    g.strokePath(noteIcon, pst);
 }
 
 //==============================================================================
@@ -47,51 +72,34 @@ RepitchAudioProcessorEditor::RepitchAudioProcessorEditor (RepitchAudioProcessor&
     AudioProcessorEditor (&p),
     processor (p),
     vts(vts),
-    pitchSlider(Slider::RotaryVerticalDrag, Slider::NoTextBox),
+    pitchSlider(Slider::Rotary, Slider::NoTextBox),
     aSlider(Slider::LinearVertical, Slider::NoTextBox),
     dSlider(Slider::LinearVertical, Slider::NoTextBox),
     sSlider(Slider::LinearVertical, Slider::NoTextBox),
     rSlider(Slider::LinearVertical, Slider::NoTextBox),
-    hzButton("Hz", "M 1 4 L 1 16 M 9 4 L 9 16 M 2 10 L 9 10 M 18 10 L 12 16 M 12 10 L 18 10 M 12 16 L 18 16", Colours::cyan, Colours::darkgrey),
-    noteButton("Musical Note", "M 13 16 A 3 3 0 1 0 7 16 A 3 3 0 1 0 13 16 L 13 4 A 5 5 0 0 0 18 9", Colours::red, Colours::darkgrey)
+    pitchAttachment(vts, "pitch", pitchSlider),
+    aAttachment(vts, "attack", aSlider),
+    dAttachment(vts, "decay", dSlider),
+    sAttachment(vts, "sustain", sSlider),
+    rAttachment(vts, "release", rSlider),
+    snapAttachment(vts, "snap", pitchSlider.tuneToggle)
 {
     setSize (scale, 5*scale/3);
     
-    addAndMakeVisible (&pitchSlider);
-    pitchAttachment.reset(new SliderAttachment (vts, "pitch", pitchSlider));
+    addAndMakeVisible (pitchSlider);
+    pitchSlider.setMouseDragSensitivity(1024);
     
-    addAndMakeVisible(&hzButton);
-    hzButton.setRadioGroupId(7);
-    hzButton.setClickingTogglesState(true);
-    hzButton.onClick = [this](){
-        pitchSlider.setColour(Slider::thumbColourId, hzButton.onColour);
-        pitchSlider.setSnap(false);
-    };
-    
-    addAndMakeVisible(&noteButton);
-    noteButton.setRadioGroupId(7);
-    noteButton.setClickingTogglesState(true);
-    noteButton.onClick = [this](){
-        pitchSlider.setColour(Slider::thumbColourId, noteButton.onColour);
-        pitchSlider.setSnap(true);
-    };
-    noteButton.triggerClick();
-    
-    addAndMakeVisible(&aSlider);
+    addAndMakeVisible(aSlider);
     aSlider.setColour(Slider::thumbColourId, Colours::grey);
-    aAttachment.reset(new SliderAttachment(vts, "attack", aSlider));
     
-    addAndMakeVisible(&dSlider);
+    addAndMakeVisible(dSlider);
     dSlider.setColour(Slider::thumbColourId, Colours::grey);
-    dAttachment.reset(new SliderAttachment(vts, "decay", dSlider));
     
-    addAndMakeVisible(&sSlider);
+    addAndMakeVisible(sSlider);
     sSlider.setColour(Slider::thumbColourId, Colours::grey);
-    sAttachment.reset(new SliderAttachment(vts, "sustain", sSlider));
     
-    addAndMakeVisible(&rSlider);
+    addAndMakeVisible(rSlider);
     rSlider.setColour(Slider::thumbColourId, Colours::grey);
-    rAttachment.reset(new SliderAttachment(vts, "release", rSlider));
 }
 
 RepitchAudioProcessorEditor::~RepitchAudioProcessorEditor()
@@ -120,9 +128,6 @@ void RepitchAudioProcessorEditor::paint (Graphics& g)
 void RepitchAudioProcessorEditor::resized()
 {
     pitchSlider.setBounds (0, 0, scale, scale);
-    hzButton.setBounds(44,96,20,30);
-    noteButton.setBounds(64,96,20,30);
-    
     aSlider.setBounds(0, getWidth()*0.97, getWidth()/4, getWidth()/2);
     dSlider.setBounds(getWidth()/4, getWidth()*0.97, getWidth()/4, getWidth()/2);
     sSlider.setBounds(getWidth()/2, getWidth()*0.97, getWidth()/4, getWidth()/2);

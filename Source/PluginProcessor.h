@@ -2,6 +2,8 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
+const String NOTE_NAMES[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+
 //==============================================================================
 
 struct Voice
@@ -30,7 +32,7 @@ struct RingBuffer : AudioSampleBuffer
         (index-trunc(index)) * getSample(channel, int(index+1)%getNumSamples());
     }
     
-    void inc()
+    void increment()
     {
         writeIndex++;
         writeIndex %= getNumSamples();
@@ -70,8 +72,8 @@ private:
     std::unique_ptr<RingBuffer> ring;
     Voice voices[128];
     
+    float *pitchParam, *aParam, *dParam, *sParam, *rParam, *snapParam=nullptr;
     AudioProcessorValueTreeState parameters;
-    float *pitchParam, *aParam, *dParam, *sParam, *rParam;
     ADSR::Parameters adsrParameters;
     SmoothedValue<float> pitchSmoother, aSmoother, dSmoother, sSmoother, rSmoother;
 };

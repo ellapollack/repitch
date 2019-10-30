@@ -7,18 +7,32 @@ RepitchAudioProcessor::RepitchAudioProcessor() :
 AudioProcessor (BusesProperties()
                 .withInput("Input", AudioChannelSet::mono(), true)
                 .withOutput("Output", AudioChannelSet::stereo(), true)),
-parameters (*this, nullptr, Identifier ("Repitch"), { std::make_unique<AudioParameterFloat> ("pitch", "Pitch", 0.f, 127.f, 48.f),
-    std::make_unique<AudioParameterFloat> ("attack", "Attack", -2.f, 1.f, 0.f),
-    std::make_unique<AudioParameterFloat> ("decay", "Decay", -2.f, 1.f, 0.f),
-    std::make_unique<AudioParameterFloat> ("sustain", "Sustain", 0.f, 1.f, 1.f),
-    std::make_unique<AudioParameterFloat> ("release", "Release", -2.f, 1.f, 0.f)
+parameters (*this, nullptr, Identifier ("Repitch"), {
+    std::make_unique<AudioParameterFloat> ("pitch",
+                                           "Pitch",
+                                           NormalisableRange<float> (0.f, 127.f, [](auto rangeStart, auto rangeEnd, auto valueToRemap) { return jmap(valueToRemap, rangeStart, rangeEnd); },
+                                               [](auto rangeStart, auto rangeEnd, auto valueToRemap) { return jmap(valueToRemap, rangeStart, rangeEnd, 0.0f, 1.0f); },
+                                               [this](auto rangeStart, auto rangeEnd, auto valueToRemap) { if (snapParam != nullptr && *snapParam) return round(valueToRemap); else return valueToRemap; }
+                                           ),
+                                           60.f,
+                                           String(),
+                                           AudioProcessorParameter::genericParameter,
+                                           [this](auto value, int){if(snapParam != nullptr && *snapParam) return NOTE_NAMES[int(value+1200)%12] + String(floor(value/12)-1); else return String(440 * pow(2, (value - 69) / 12))+" Hz";},
+                                           nullptr),
+    std::make_unique<AudioParameterFloat> ("attack", "Attack", NormalisableRange<float> (-2, 1), -2., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
+    std::make_unique<AudioParameterFloat> ("decay", "Decay", NormalisableRange<float> (-2, 1), 1., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
+    std::make_unique<AudioParameterFloat> ("sustain", "Sustain", NormalisableRange<float> (0, 1), 1., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
+    std::make_unique<AudioParameterFloat> ("release", "Release", NormalisableRange<float> (-2, 1), -2., String(), AudioProcessorParameter::genericParameter, [](auto value, int){return String(pow(10,value))+" s";}, nullptr),
+    std::make_unique<AudioParameterBool>("snap", "Snap", true)
 })
+
 {
     pitchParam = parameters.getRawParameterValue("pitch");
     aParam = parameters.getRawParameterValue("attack");
     dParam = parameters.getRawParameterValue("decay");
     sParam = parameters.getRawParameterValue("sustain");
     rParam = parameters.getRawParameterValue("release");
+    snapParam = parameters.getRawParameterValue("snap");
 }
 
 RepitchAudioProcessor::~RepitchAudioProcessor()
@@ -174,7 +188,7 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
                 {
                     int sourceChannel = totalNumInputChannels==1 ? 0 : channel;
                     
-                    buffer.addSample(channel, sample, voice.gain * envelope *
+                    buffer.addSample(channel, sample, voice.gain / (1-voice.stride) * envelope *
                                      ((cos(M_PI * voice.delay / period) / -2 + 0.5) *
                                      ring->getSampleAtDelay(sourceChannel,
                                                             voice.delay) +
@@ -188,7 +202,7 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
                     voice.delay += period;
             }
         }
-        ring->inc();
+        ring->increment();
     }
 }
 

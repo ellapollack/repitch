@@ -4,30 +4,33 @@
 #include "PluginProcessor.h"
 
 typedef AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
+typedef AudioProcessorValueTreeState::ButtonAttachment ButtonAttachment;
 
 //==============================================================================
 
 class TunableSlider : public Slider
 {
 public:
-    using Slider::Slider;
-    enum Mode {Hz, Pitch};
-    void setSnap(bool s) {snap = s; setValue(snapValue(getValue(), DragMode::notDragging));};
+    
+    TunableSlider(SliderStyle ss, TextEntryBoxPosition tebp) : Slider(ss, tebp), tuneToggle()
+    { addAndMakeVisible(tuneToggle); }
+    
+    class TuneToggle : public Button
+    {
+    public:
+        TuneToggle() : Button("tuneToggle") { setTriggeredOnMouseDown(true); }
+    private:
+        void mouseDown(const MouseEvent&) override;
+        void paintButton(Graphics&, bool, bool) override;
+    };
+    
+    TuneToggle tuneToggle;
     
 private:
-    bool snap = true;
-    double snapValue(double, DragMode) override;
     void paint(Graphics&) override;
+    void resized() override;
     
-    static double roundToMultiple(double input, double freq, double multiple);
-};
-
-struct LineButton : Button
-{
-    LineButton(String name, String svgPath, Colour onColour, Colour offColour) : Button(name), icon(Drawable::parseSVGPath(svgPath)), onColour(onColour), offColour(offColour) {};
-    Path icon;
-    Colour onColour, offColour;
-    void paintButton(Graphics&, bool, bool) override;
+    //static double roundToFreqMultiple(double input, double freq, double multiple);
 };
 
 class RepitchAudioProcessorEditor  : public AudioProcessorEditor
@@ -42,10 +45,12 @@ public:
 private:
     RepitchAudioProcessor& processor;
     AudioProcessorValueTreeState& vts;
+    
     TunableSlider pitchSlider;
     Slider aSlider, dSlider, sSlider, rSlider;
-    LineButton hzButton, noteButton;
-    std::unique_ptr<SliderAttachment> pitchAttachment, aAttachment, dAttachment, sAttachment, rAttachment;
+    SliderAttachment pitchAttachment, aAttachment, dAttachment, sAttachment, rAttachment;
+    ButtonAttachment snapAttachment;
+    
     int scale = 128;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessorEditor)
