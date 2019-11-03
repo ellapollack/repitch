@@ -25,6 +25,7 @@ struct RingBuffer : AudioSampleBuffer
         float index = fmod(writeIndex - delay + ceil(delay/numSamples)*numSamples, numSamples);
         
         // linear interpolation
+        // TODO: replace with vectorized sinc interpolation w/ sinc (Lanczos) window
         
         return (1+trunc(index)-index) * getSample(channel, int(index)) +
         (index-trunc(index)) * getSample(channel, int(index+1)%getNumSamples());
