@@ -13,12 +13,10 @@ void TunableSlider::paint(Graphics& g)
     
     double value = getValue();
     
-    const String NOTE_NAMES[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-    
     if (tuneToggle.getToggleState())
     {
         g.setFont(value < 12 ? 0.25*getWidth() : 0.3*getWidth());
-        g.drawText(NOTE_NAMES[int(value+1200)%12] + String(floor(value/12)-1), 0.2*getWidth(), 0, 0.6*getWidth(), getHeight(), Justification::centred, false);
+        g.drawText(MidiMessage::getMidiNoteName(int(value), true, true, 4), 0.2*getWidth(), 0, 0.6*getWidth(), getHeight(), Justification::centred, false);
     }
     else
     {

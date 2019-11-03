@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="X4Mt7w" name="Repitch" projectType="audioplug" jucerVersion="5.4.4"
-              pluginFormats="buildAU,buildStandalone,buildVST3" pluginManufacturer="Max"
-              pluginManufacturerCode="MaxP" pluginCode="RePi" pluginVST3Category="Pitch Shift"
-              companyWebsite="maxis.cool" companyName="Max" pluginDesc="MIDI-controlled polyphonic pitch shifting."
-              pluginAUMainType="'aumf'" pluginCharacteristicsValue="pluginWantsMidiIn">
+<JUCERPROJECT id="X4Mt7w" name="Repitch" projectType="audioplug" jucerVersion="5.4.5"
+              pluginFormats="buildAU,buildStandalone,buildVST3" pluginManufacturer="maxis.cool"
+              pluginManufacturerCode="MaxP" pluginCode="RePi" pluginVST3Category="Fx,Instrument,Pitch Shift"
+              companyWebsite="maxis.cool" companyName="maxis.cool" pluginDesc="polyphonic MIDI-controlled pitch shifting."
+              pluginAUMainType="'aumf'" pluginCharacteristicsValue="pluginWantsMidiIn"
+              bundleIdentifier="com.maxis.cool.Repitch">
   <MAINGROUP id="yySrMB" name="Repitch">
     <GROUP id="{633F6DFE-2FFE-ADDD-B493-48377FCD989A}" name="Source">
       <FILE id="K0dmug" name="PluginProcessor.cpp" compile="1" resource="0"
