@@ -12,24 +12,57 @@ struct Voice
 
 struct RingBuffer : AudioSampleBuffer
 {
-    using AudioSampleBuffer::AudioSampleBuffer;
-    
+  using AudioSampleBuffer::AudioSampleBuffer;
+
     void pushSample(int channel, float sample)
     {
         setSample(channel, writeIndex, sample);
     }
 
-    float getSampleAtDelay(int channel, float delay)
-    {
-        int numSamples = getNumSamples();
-        float index = fmod(writeIndex - delay + ceil(delay/numSamples)*numSamples, numSamples);
-        
-        // linear interpolation
-        
-        return (1+trunc(index)-index) * getSample(channel, int(index)) +
-        (index-trunc(index)) * getSample(channel, int(index+1)%getNumSamples());
+  float getSampleAtDelay(int channel, float delay)
+  {
+    int numSamples = getNumSamples();
+    float t = fmod(writeIndex - delay, numSamples);
+    if (t<0) t += numSamples;
+
+    const float* audio = getReadPointer(channel);
+
+    // sinc interpolation
+    // auto-vectorizes with -03 and -ffast-math
+
+    int t_0 = int(t);
+    float dt_0 = t - t_0;
+    if (dt_0==0.) return audio[t_0];
+    float sum = 0.;
+
+    const int n = 16;
+
+    int i0 = t_0-n+n/2;
+    if (i0<0) i0 = i0/numSamples-1;
+    else i0 /= numSamples;
+
+    int im = (t_0+n/2)/numSamples;
+
+    for (int i=i0; i<=im; ++i) {
+
+      int offset = t_0-i*numSamples;
+
+      int jmax = offset+n/2;
+      int jmin = jmax-n;
+
+      if(jmin<0) jmin = 0;
+      jmin -= offset;
+
+      if (jmax >= numSamples-1) jmax = numSamples-1;
+      jmax -= offset;
+
+      for (int j=jmin; j<=jmax; ++j)
+        sum += float(2*(j&1)-1) * audio[offset+j] / (j-dt_0);
     }
-    
+
+    return sum * sinpi[dt_0];
+  }
+
     void increment()
     {
         writeIndex++;
@@ -37,7 +70,8 @@ struct RingBuffer : AudioSampleBuffer
     }
 
 private:
-    int writeIndex = 0;
+  int writeIndex = 0;
+  dsp::LookupTableTransform<float> sinpi {[] (float x) { return sin(M_PI*x)/M_PI;}, 0, 1, 512};
 };
 
 class RepitchAudioProcessor : public AudioProcessor
@@ -69,14 +103,14 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RepitchAudioProcessor)
     std::unique_ptr<RingBuffer> ring;
     Voice voices[128];
-    
+
     static float pow10VRF(float start, float end, float value)
     { return pow(10.,jmap(value, log10(start), log10(end))); }
-    
+
     static float log10VRF(float start, float end, float value)
     { return jmap(log10(value), log10(start), log10(end), 0.0f, 1.0f); }
-    
-    float *pitchParam, *aParam, *dParam, *sParam, *rParam, *snapParam=nullptr;
+
+    std::atomic<float> *pitchParam, *aParam, *dParam, *sParam, *rParam, *snapParam=nullptr;
     AudioProcessorValueTreeState parameters;
     ADSR::Parameters adsrParameters;
     SmoothedValue<float, ValueSmoothingTypes::Linear> pitchSmoother, sSmoother;
