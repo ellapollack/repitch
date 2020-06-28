@@ -124,26 +124,26 @@ bool RepitchAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
     return true;
 }
 
-void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
+void RepitchAudioProcessor::processBlock (AudioBuffer<float>& audio, MidiBuffer& midi)
 {
     ScopedNoDenormals noDenormals;
     int totalNumInputChannels = getTotalNumInputChannels();
     int totalNumOutputChannels = getTotalNumOutputChannels();
 
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+        audio.clear(i, 0, audio.getNumSamples());
     
-    MidiBuffer::Iterator midi (midiMessages);
+    MidiBuffer::Iterator midiIter (midi);
     MidiMessage m;
     int mSample = 0;
-    
+
     pitchSmoother.setTargetValue(*pitchParam);
     aSmoother.setTargetValue(*aParam);
     dSmoother.setTargetValue(*dParam);
     sSmoother.setTargetValue(*sParam);
     rSmoother.setTargetValue(*rParam);
 
-    for (int sample=0; sample<buffer.getNumSamples(); ++sample)
+    for (int sample=0; sample<audio.getNumSamples(); ++sample)
     {
         adsrParameters.attack = aSmoother.getNextValue();
         adsrParameters.decay = dSmoother.getNextValue();
@@ -152,9 +152,11 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
         float pitch = pitchSmoother.getNextValue();
         
         float period = getSampleRate() / 440 * pow(2, (69 - pitch) / 12);
-        
-        while (sample==mSample && midi.getNextEvent(m, mSample))
+
+        // for (const MidiMessageMetadata m : midi)
+        while (sample==mSample && midiIter.getNextEvent(m, mSample))
         {
+
             if (m.isNoteOnOrOff())
             {
                 int note = m.getNoteNumber();
@@ -173,8 +175,8 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
         for (int channel=0; channel<totalNumInputChannels; ++channel)
         {
-            ring->pushSample(channel, buffer.getSample(channel, sample));
-            buffer.clear(channel, sample, 1);
+            ring->pushSample(channel, audio.getSample(channel, sample));
+            audio.clear(channel, sample, 1);
         }
             
         for (int note=0; note<128; ++note)
@@ -191,7 +193,7 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
                 {
                     int sourceChannel = totalNumInputChannels==1 ? 0 : channel;
                     
-                    buffer.addSample(channel, sample, voice.gain * envelope *
+                    audio.addSample(channel, sample, voice.gain * envelope *
                                      ((cos(M_PI * voice.delay / period) / -2 + 0.5) *
                                      ring->getSampleAtDelay(sourceChannel,
                                                             voice.delay) +
