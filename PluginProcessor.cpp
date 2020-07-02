@@ -194,10 +194,10 @@ void RepitchAudioProcessor::processBlock (AudioBuffer<float>& audio, MidiBuffer&
                     int sourceChannel = totalNumInputChannels==1 ? 0 : channel;
                     
                     audio.addSample(channel, sample, voice.gain * envelope *
-                                     ((cos(M_PI * voice.delay / period) / -2 + 0.5) *
+                                     ((cos(3.14159265359 * voice.delay / period) / -2 + 0.5) *
                                      ring->getSampleAtDelay(sourceChannel,
                                                             voice.delay) +
-                                     (cos(M_PI * voice.delay / period) / 2 + 0.5) *
+                                     (cos(3.14159265359 * voice.delay / period) / 2 + 0.5) *
                                     ring->getSampleAtDelay(sourceChannel,
                                                            voice.delay + period)));
                 }
