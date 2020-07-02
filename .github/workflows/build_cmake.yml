@@ -1,3 +1,5 @@
+# Adopted from github.com/cristianadam/HelloWorld
+
 name: CMake Build Matrix
 
 on: [push, pull_request]
@@ -39,7 +41,7 @@ jobs:
           }
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
         submodules: true
 
@@ -189,7 +191,7 @@ jobs:
 
 
     - name: Pack
-      working-directory: instdir
+      working-directory: build
       run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cJfv ../${{ matrix.config.artifact }} .
 
 
