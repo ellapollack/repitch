@@ -14,10 +14,10 @@ struct RingBuffer : AudioSampleBuffer
 {
   using AudioSampleBuffer::AudioSampleBuffer;
 
-    void pushSample(int channel, float sample)
-    {
-        setSample(channel, writeIndex, sample);
-    }
+  void pushSample(int channel, float sample)
+  {
+      setSample(channel, writeIndex, sample);
+  }
 
   float getSampleAtDelay(int channel, float delay)
   {
@@ -71,7 +71,8 @@ struct RingBuffer : AudioSampleBuffer
 
 private:
   int writeIndex = 0;
-  dsp::LookupTableTransform<float> sinpi {[] (float x) { return sin(M_PI*x)/M_PI;}, 0, 1, 512};
+  std::function<float(float)> sinpiFunc = [] (float x) { return sin(3.14159265359*x)/3.14159265359; };
+  dsp::LookupTableTransform<float> sinpi {sinpiFunc, 0, 1, 512};
 };
 
 class RepitchAudioProcessor : public AudioProcessor
