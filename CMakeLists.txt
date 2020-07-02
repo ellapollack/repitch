@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(Repitch VERSION 0.0.1)
+project(Repitch VERSION 0.4.0)
 add_subdirectory(JUCE)
 
 juce_add_plugin(Repitch
@@ -37,3 +37,5 @@ target_compile_definitions(Repitch
 target_link_libraries(Repitch PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp)
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
