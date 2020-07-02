@@ -1,5 +1,3 @@
-# Adopted from github.com/cristianadam/HelloWorld
-
 name: CMake Build Matrix
 
 on: [push, pull_request]
@@ -19,31 +17,29 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC", artifact: "Windows-MSVC.zip",
+            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             cc: "cl", cxx: "cl",
             environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           }
         - {
-            name: "Windows Latest MinGW", artifact: "Windows-MinGW.zip",
+            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
             cc: "gcc", cxx: "g++"
           }
         - {
-            name: "Ubuntu Latest GCC", artifact: "Linux.zip",
+            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             cc: "gcc", cxx: "g++"
           }
         - {
-            name: "macOS Latest Clang", artifact: "macOS.zip",
+            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
             os: macos-latest,
             cc: "clang", cxx: "clang++"
           }
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
+    - uses: actions/checkout@v1
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
@@ -192,7 +188,7 @@ jobs:
 
     - name: Pack
       working-directory: instdir
-      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ../${{ matrix.config.artifact }} --format=zip .
+      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cJfv ../${{ matrix.config.artifact }} .
 
 
     - name: Upload
@@ -235,19 +231,19 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC", artifact: "Windows-MSVC.zip",
+            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
             os: ubuntu-latest
           }
         - {
-            name: "Windows Latest MinGW", artifact: "Windows-MinGW.zip",
+            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: ubuntu-latest
           }
         - {
-            name: "Ubuntu Latest GCC", artifact: "Linux.zip",
+            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
             os: ubuntu-latest
           }
         - {
-            name: "macOS Latest Clang", artifact: "macOS.zip",
+            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
             os: ubuntu-latest
           }
     needs: release
@@ -277,4 +273,4 @@ jobs:
         upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
         asset_path: ./${{ matrix.config.artifact }}
         asset_name: ${{ matrix.config.artifact }}
-        asset_content_type: application/gzip
+        asset_content_type: application/x-gtar
