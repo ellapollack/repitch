@@ -1,4 +1,4 @@
-# Adopted from github.com/cristianadam/HelloWorld
+# Adapted from github.com/cristianadam/HelloWorld
 
 name: CMake Build Matrix
 
@@ -19,23 +19,18 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows Latest MSVC", artifact: "Windows.zip",
             os: windows-latest,
             cc: "cl", cxx: "cl",
             environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           }
+        # - {
+        #     name: "Ubuntu Latest GCC", artifact: "Linux.zip",
+        #     os: ubuntu-latest,
+        #     cc: "gcc", cxx: "g++"
+        #   }
         - {
-            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
-            os: windows-latest,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
+            name: "macOS Latest Clang", artifact: "Mac.zip",
             os: macos-latest,
             cc: "clang", cxx: "clang++"
           }
@@ -186,14 +181,20 @@ jobs:
         if (NOT result EQUAL 0)
           message(FATAL_ERROR "Running tests failed!")
         endif()
-    - name: Install Strip
-      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --install build --prefix instdir --strip
+    # - name: Install Strip
+    #   run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --install build --prefix instdir --strip
 
 
     - name: Pack
-      working-directory: build
-      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cJfv ../${{ matrix.config.artifact }} .
+      working-directory: build/*artefacts/Release
+      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ../../../${{ matrix.config.artifact }} --format=zip .
 
+
+    - name: Upload
+      uses: actions/upload-artifact@v1
+      with:
+        path: ./${{ matrix.config.artifact }}
+        name: ${{ matrix.config.artifact }}
 
     - name: Upload
       uses: actions/upload-artifact@v1
@@ -235,19 +236,15 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows Latest MSVC", artifact: "Windows.zip",
             os: ubuntu-latest
           }
+        # - {
+        #     name: "Ubuntu Latest GCC", artifact: "Linux.zip",
+        #     os: ubuntu-latest
+        #   }
         - {
-            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
-            os: ubuntu-latest
-          }
-        - {
-            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
-            os: ubuntu-latest
-          }
-        - {
-            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
+            name: "macOS Latest Clang", artifact: "Mac.zip",
             os: ubuntu-latest
           }
     needs: release
@@ -277,4 +274,4 @@ jobs:
         upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
         asset_path: ./${{ matrix.config.artifact }}
         asset_name: ${{ matrix.config.artifact }}
-        asset_content_type: application/x-gtar
+        asset_content_type: application/zip
