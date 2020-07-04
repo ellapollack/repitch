@@ -1,6 +1,6 @@
 # Adapted from github.com/cristianadam/HelloWorld
 
-name: CMake Build Matrix
+name: JUCE CMake Build Matrix
 
 on: [push, pull_request]
 
@@ -11,6 +11,16 @@ env:
   CCACHE_VERSION: 3.7.7
 
 jobs:
+  get_name:
+    name: Get CMake Project Name
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get CMake Project Name
+      id: get_cmake_name
+      shell: cmake -P {0}
+      run: |
+
+
   build:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -187,14 +197,8 @@ jobs:
 
     - name: Pack
       working-directory: build
-      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ../${{ matrix.config.artifact }} --format=zip *artefacts/Release
+      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ../${{ matrix.config.artifact }} --format=zip ${CMAKE_PROJECT_NAME}_artefacts/Release
 
-
-    - name: Upload
-      uses: actions/upload-artifact@v1
-      with:
-        path: ./${{ matrix.config.artifact }}
-        name: ${{ matrix.config.artifact }}
 
     - name: Upload
       uses: actions/upload-artifact@v1
