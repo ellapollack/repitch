@@ -11,16 +11,6 @@ env:
   CCACHE_VERSION: 3.7.7
 
 jobs:
-  get_name:
-    name: Get CMake Project Name
-    runs-on: ubuntu-latest
-    steps:
-    - name: Get CMake Project Name
-      id: get_cmake_name
-      shell: cmake -P {0}
-      run: |
-
-
   build:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
