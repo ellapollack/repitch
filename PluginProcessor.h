@@ -106,7 +106,7 @@ private:
     Voice voices[128];
 
     static float pow10VRF(float start, float end, float value)
-    { return pow(10.,jmap(value, log10(start), log10(end))); }
+    { return pow(10.,jmap(double(value), log10(start), log10(end))); }
 
     static float log10VRF(float start, float end, float value)
     { return jmap(log10(value), log10(start), log10(end), 0.0f, 1.0f); }
