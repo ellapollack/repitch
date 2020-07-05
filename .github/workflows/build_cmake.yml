@@ -191,10 +191,11 @@ jobs:
 
 
     - name: Upload
+      working-directory: 'build/*_artefacts/Release/'
       uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.config.artifact }}
-        path: ./build/*_artefacts/Release/*/*
+        path: ./*/*
 
   release:
     if: contains(github.ref, 'tags/v')
