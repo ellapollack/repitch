@@ -134,7 +134,6 @@ jobs:
     - name: Build
       shell: cmake -P {0}
       run: |
-        set(ENV{CMAKE_PROJECT_NAME} "${CMAKE_PROJECT_NAME}")
         set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
         if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
           file(STRINGS environment_script_output.txt output_lines)
@@ -187,8 +186,8 @@ jobs:
 
 
     - name: Pack
-      working-directory: build/${{env.CMAKE_PROJECT_NAME}}_artefacts/Release
-      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ../../../${{ matrix.config.artifact }} --format=zip .
+      run: |
+        ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ${{ matrix.config.artifact }} --format=zip  "${base_folder}/Release"
 
 
     - name: Upload
