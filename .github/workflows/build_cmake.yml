@@ -166,6 +166,7 @@ jobs:
         if (NOT result EQUAL 0)
           message(FATAL_ERROR "Bad exit status")
         endif()
+        message(STATUS "${products_folder}")
         execute_process(COMMAND ccache -s)
     - name: Run tests
       shell: cmake -P {0}
@@ -187,7 +188,7 @@ jobs:
 
     - name: Pack
       run: |
-        ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ${{ matrix.config.artifact }} --format=zip  "${base_folder}/Release"
+        ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cfv ${{ matrix.config.artifact }} --format=zip "${products_folder}"
 
 
     - name: Upload
