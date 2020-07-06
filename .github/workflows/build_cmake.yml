@@ -1,3 +1,4 @@
+# Continuous Integration for AU/VST3/Standalone audio plugins made with JUCE for Windows/Linux/macOS 
 # Adapted from github.com/cristianadam/HelloWorld
 
 name: CMake Build Matrix
