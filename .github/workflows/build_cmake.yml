@@ -202,7 +202,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        del *.*
+        del *
         move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
@@ -212,7 +212,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build/*_artefacts/Release
-        rm *.*
+        rm *
         mv * ../../../${{ github.event.repository.name }}-${{ runner.os }}
         cd ../../..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
