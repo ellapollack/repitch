@@ -1,6 +1,6 @@
 # Adapted from github.com/cristianadam/HelloWorld
 
-name: JUCE CMake Build Matrix
+name: CMake Build Matrix
 
 on: [push, pull_request]
 
@@ -202,7 +202,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}
         cd build\*_artefacts\Release
-        move *\* ..\..\..\${{ github.event.repository.name }}
+        move * ..\..\..\${{ github.event.repository.name }}
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}
 
@@ -211,7 +211,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}
         cd build/*_artefacts/Release
-        mv */* ../../../${{ github.event.repository.name }}
+        mv * ../../../${{ github.event.repository.name }}
         cd ../../..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}
 
