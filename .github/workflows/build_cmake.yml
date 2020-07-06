@@ -202,10 +202,8 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        move *\** ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
-        cd ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
-        del /s *.*
-        cd ..
+        move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
+        cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
     - if: ${{ runner.os!='Windows'}}
@@ -213,7 +211,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build/*_artefacts/Release
-        mv */** ../../../${{ github.event.repository.name }}-${{ runner.os }}
+        mv * ../../../${{ github.event.repository.name }}-${{ runner.os }}
         cd ../../..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
