@@ -3,7 +3,7 @@ project(Repitch VERSION 0.4.0)
 add_subdirectory(JUCE)
 
 juce_add_plugin(Repitch
-    ICON_SMALL "icon.png"
+    ICON_BIG "icon.png"
     COMPANY_NAME "Max Pollack"
     COMPANY_WEBSITE "maxis.cool"
     MICROPHONE_PERMISSION_ENABLED TRUE

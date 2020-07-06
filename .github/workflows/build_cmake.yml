@@ -200,20 +200,20 @@ jobs:
     - if: ${{ runner.os=='Windows'}}
       name: Pack (Windows)
       run: |
-        mkdir ${{ github.event.repository.name }}
+        mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        move * ..\..\..\${{ github.event.repository.name }}
+        move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}
 
     - if: ${{ runner.os!='Windows'}}
       name: Pack (Unix)
       run: |
-        mkdir ${{ github.event.repository.name }}
+        mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build/*_artefacts/Release
-        mv * ../../../${{ github.event.repository.name }}
+        mv * ../../../${{ github.event.repository.name }}-${{ runner.os }}
         cd ../../..
-        cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}
+        cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
     - name: Upload
       uses: actions/upload-artifact@v2
