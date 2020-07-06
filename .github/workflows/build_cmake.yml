@@ -202,7 +202,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        xcopy *\* ..\..\..\${{ github.event.repository.name }}-${{ runner.os }} /E /I
+        xcopy "*\*" "..\..\..\${{ github.event.repository.name }}-${{ runner.os }}" /E /I
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
