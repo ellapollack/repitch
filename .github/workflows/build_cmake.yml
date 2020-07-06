@@ -202,7 +202,8 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        xcopy "*\*" "..\..\..\${{ github.event.repository.name }}-${{ runner.os }}" /E /I
+        del *.*
+        move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
@@ -211,7 +212,8 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build/*_artefacts/Release
-        mv */* ../../../${{ github.event.repository.name }}-${{ runner.os }}
+        rm *.*
+        mv * ../../../${{ github.event.repository.name }}-${{ runner.os }}
         cd ../../..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
@@ -248,7 +250,7 @@ jobs:
 
   publish:
     if: contains(github.ref, 'tags/v')
-    name: ${{ matrix.config.name }}
+    name: Publish ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
