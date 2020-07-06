@@ -202,7 +202,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build\*_artefacts\Release
-        move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
+        xcopy *\* ..\..\..\${{ github.event.repository.name }}-${{ runner.os }} /E /I
         cd ..\..\..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
@@ -211,7 +211,7 @@ jobs:
       run: |
         mkdir ${{ github.event.repository.name }}-${{ runner.os }}
         cd build/*_artefacts/Release
-        mv * ../../../${{ github.event.repository.name }}-${{ runner.os }}
+        mv */* ../../../${{ github.event.repository.name }}-${{ runner.os }}
         cd ../../..
         cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
@@ -280,10 +280,12 @@ jobs:
       with:
         name: upload_url
         path: ./
+
     - id: set_upload_url
       run: |
         upload_url=`cat ./upload_url`
         echo ::set-output name=upload_url::$upload_url
+
     - name: Upload to Release
       id: upload_to_release
       uses: actions/upload-release-asset@v1.0.1
