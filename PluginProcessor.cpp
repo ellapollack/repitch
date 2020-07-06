@@ -19,7 +19,7 @@ parameters (*this, nullptr, Identifier ("Repitch"), {
                                            "Pitch",
                                            NormalisableRange<float> (0., 127., nullptr,
                                                nullptr,
-                                               [this](float start, float end, float value) { if (snapParam != nullptr && *snapParam) return round(value); else return value; }
+                                               [this](float start, float end, float value) { if (snapParam != nullptr && *snapParam) return float(round(value)); else return value; }
                                            ),
                                            60.),
     std::make_unique<AudioParameterFloat> ("attack", "Attack", NormalisableRange<float> (0.01, 10., pow10VRF, log10VRF), 0.01),
