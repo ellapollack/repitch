@@ -204,7 +204,7 @@ jobs:
         cd build\*_artefacts\Release
         move * ..\..\..\${{ github.event.repository.name }}-${{ runner.os }}
         cd ..\..\..
-        cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}
+        cmake -E tar cvf ${{ github.event.repository.name }}-${{ runner.os }}.zip --format=zip -- ${{ github.event.repository.name }}-${{ runner.os }}
 
     - if: ${{ runner.os!='Windows'}}
       name: Pack (Unix)
