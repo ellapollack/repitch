@@ -37,3 +37,6 @@ target_compile_definitions(Repitch
 target_link_libraries(Repitch PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp)
+
+juce_disable_default_flags()
+set(CMAKE_C_FLAGS_RELEASE, "-O3 -ffast-math")
