@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 project(Repitch VERSION 0.4.0)
 add_subdirectory(JUCE)
 
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
+
 juce_add_plugin(Repitch
     ICON_BIG "icon.png"
     COMPANY_NAME "Max Pollack"
