@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
+
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.11" CACHE STRING "Minimum OS X deployment version" FORCE)
+
 project(Repitch VERSION 0.4.0)
 add_subdirectory(JUCE)
-
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version" FORCE)
 
 juce_add_plugin(Repitch
     ICON_BIG "icon.png"
